@@ -1,0 +1,4 @@
+name: SkyWars
+api: 3.0.0-ALPHA12
+main: muqsit\skywars\Loader
+version: 1.0.0

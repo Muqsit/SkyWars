@@ -1,0 +1,40 @@
+---
+# Skywars Config File
+
+# The following messages will be centered before being sent.
+# See the lang file for messages.
+center-aligned-messages:
+ - broadcast.winner
+
+# Message format for all join signs
+sign-format:
+ - '&f&lSkyWars&r'
+ - '&e{NAME}'
+ - '&6{PLAYERS} &b/ &e{MAX_PLAYERS}'
+ - '&aTap to JOIN!'
+
+# SkyWars scoring system
+scoring:
+  # Whether to enable scoring
+  enable: true
+  # Score gained for winning a skywars game
+  win-score: 7
+  # Score gained for killing someone
+  kill-score: 1
+  # Score gained for dying
+  death-score: 0
+  # Database configuration to use for storing scores
+  database:
+    # Valid databases: json, mysql
+    type: json
+    # This is needed if you are using JSON database
+    json: scores
+    # This is needed if you are using MYSQL database
+    mysql:
+      host: 127.0.0.1
+      username: not_root
+      password: drowssap
+      schema: skywars_scores
+      port: 3306
+      socket: ""
+...
