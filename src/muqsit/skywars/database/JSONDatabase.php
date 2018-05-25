@@ -36,10 +36,10 @@ class JSONDatabase extends Database {
         if (empty($this->scoreboard)) {
             echo "Initializing JSON scoreboard...";
             foreach (scandir($this->folder_path) as $file) {
-                if (substr($file, -4) === ".json") {
+                if (substr($file, -5) === ".json") {
                     echo "\r\033[K[Reading file " . $file;
 
-                    ["player" => $player, "score" => $score] = json_decode(file_get_contents($this->folder_path . $file), true);
+                    ["formatted_name" => $player, "score" => $score] = json_decode(file_get_contents($this->folder_path . $file), true);
                     $this->addToScoreboard($player, $score);
                 }
             }

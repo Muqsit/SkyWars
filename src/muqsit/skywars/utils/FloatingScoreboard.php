@@ -1,6 +1,8 @@
 <?php
 namespace muqsit\skywars\utils;
 
+use muqsit\skywars\database\Database;
+
 use pocketmine\entity\Entity;
 use pocketmine\entity\Skin;
 use pocketmine\item\Item;
@@ -36,7 +38,10 @@ class FloatingScoreboard extends Position {
     /** @var RemoveEntityPacket */
     private $despawn_packet;
 
-    public function __construct(Position $pos)
+    /** @var Database */
+    private $database;
+
+    public function __construct(Position $pos, Database $database)
     {
         parent::__construct($pos->x, $pos->y, $pos->z, $pos->level);
 
@@ -60,6 +65,7 @@ class FloatingScoreboard extends Position {
         $pk->entityUniqueId = $this->entityId;
         $this->despawn_packet = $pk;
 
+        $this->database = $database;
         $this->scheduleUpdate();
     }
 
@@ -110,15 +116,15 @@ class FloatingScoreboard extends Position {
 
     private function sendUpdates() : void
     {
-        $update = "";
+        $update = "Top #10 Players\n";
 
-        $scores = $this->level->getServer()->getPluginManager()->getPlugin("SkyWars")->getDatabase()->getScoreboard();
-        krsort($scores, SORT_NUMERIC);
+        $scores = $this->database->getScoreboard();
+        arsort($scores);
 
         $i = 0;
 
         foreach ($scores as $player => $score) {
-            $update .= ++$i . ". " . $player . " => " . $score . PHP_EOL;
+            $update .= ++$i . ". " . $player . " => " . $score . "\n";
         }
 
         $pk = new SetEntityDataPacket();
