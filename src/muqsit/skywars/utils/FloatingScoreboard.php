@@ -110,7 +110,16 @@ class FloatingScoreboard extends Position {
 
     private function sendUpdates() : void
     {
-        $update = uniqid().PHP_EOL.uniqid().PHP_EOL.uniqid();
+        $update = "";
+
+        $scores = $this->level->getServer()->getPluginManager()->getPlugin("SkyWars")->getDatabase()->getScoreboard();
+        krsort($scores, SORT_NUMERIC);
+
+        $i = 0;
+
+        foreach ($scores as $player => $score) {
+            $update .= ++$i . ". " . $player . " => " . $score . PHP_EOL;
+        }
 
         $pk = new SetEntityDataPacket();
         $pk->metadata[Entity::DATA_NAMETAG] = [Entity::DATA_TYPE_STRING, $update];

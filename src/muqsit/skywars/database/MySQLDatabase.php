@@ -16,6 +16,8 @@ class MySQLDatabase extends Database {
 
     public const INIT_QUERY = "skywars.init";
     public const ADD_SCORE_QUERY = "skywars.add_score";
+    public const FETCH_SCORE_QUERY = "skywars.fetch_score";
+    public const FETCH_TOP_SCORES_QUERY = "skywars.fetch_top_scores";
 
     /** @var libasynql */
     private $database;
@@ -27,14 +29,40 @@ class MySQLDatabase extends Database {
         ]);
 
         $this->database->executeGeneric(MySQLDatabase::INIT_QUERY);
+        parent::__construct();
+    }
+
+    public function initializeScoreboard() : void
+    {
+        $database = $this;
+
+        $this->database->executeSelect(MySQLDatabase::FETCH_TOP_SCORES_QUERY, [
+            "limit" => 10
+        ], function(array $rows) use ($database) : void {
+            foreach ($rows as ["player" => $player, "score" => $score]) {
+                $database->onScoreChange($player, $score);
+            }
+        });
     }
 
     public function addScore(Player $player, int $score) : void
     {
+        $player = $player->getName();
+
         $this->database->executeChange(MySQLDatabase::ADD_SCORE_QUERY, [
-            "player" => $player->getName(),
+            "player" => $player,
             "score" => $score
         ]);
+
+        $database = $this;
+
+        $this->database->executeSelect(MySQLDatabase::FETCH_SCORE_QUERY, [
+            "player" => $player
+        ], function(array $rows) use ($player, $database) : void {
+            foreach ($rows as ["score" => $score]) {
+                $database->onScoreChange($player, $score);
+            }
+        });
     }
 
     public function close() : void

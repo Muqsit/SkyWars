@@ -15,18 +15,24 @@ class JSONScoreAddTask extends AsyncTask {
     /** @var int */
     private $total_score;
 
-    public function __construct(string $file, int $score)
+    public function __construct(string $player, string $folder_path, int $score)
     {
-        $this->file = $file;
+        $this->player = $player;
+        $this->folder_path = $folder_path;
         $this->score = $score;
     }
 
     public function onRun() : void
     {
         $contents = [];
-        if (is_file($this->file)) {
-            $contents = json_decode(file_get_contents($this->file), true);
+
+        $file = $this->folder_path . strtolower($this->player) . ".json";
+
+        if (is_file($file)) {
+            $contents = json_decode(file_get_contents($file), true);
         }
+
+        $contents["formatted_name"] = $this->player;
 
         if (!isset($contents["score"])) {
             $contents["score"] = $this->score;
@@ -34,12 +40,16 @@ class JSONScoreAddTask extends AsyncTask {
             $contents["score"] += $this->score;
         }
 
-        file_put_contents($this->file, json_encode($contents));
+        if ($contents["score"] < 0) {
+            $contents["score"] = 0;
+        }
+
+        file_put_contents($file, json_encode($contents));
         $this->total_score = $contents["score"];
     }
 
     public function onCompletion(Server $server) : void
     {
-        $server->getPluginManager()->getPlugin("SkyWars")->getDatabase()->addScoreCallback($this->file, $this->total_score);
+        $server->getPluginManager()->getPlugin("SkyWars")->getDatabase()->onScoreChange($this->player, $this->total_score);
     }
 }

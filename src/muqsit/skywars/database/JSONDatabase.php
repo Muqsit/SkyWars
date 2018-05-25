@@ -13,6 +13,9 @@ class JSONDatabase extends Database {
     /** @var ServerScheduler */
     private $scheduler;
 
+    /** @var int[] */
+    private $scoreboard = [];
+
     public function __construct(string $folder_path)
     {
         if (substr($folder_path, -1) !== DIRECTORY_SEPARATOR) {
@@ -25,16 +28,27 @@ class JSONDatabase extends Database {
 
         $this->folder_path = $folder_path;
         $this->scheduler = Server::getInstance()->getScheduler();
+        parent::__construct();
+    }
+
+    public function initializeScoreboard() : void
+    {
+        if (empty($this->scoreboard)) {
+            echo "Initializing JSON scoreboard...";
+            foreach (scandir($this->folder_path) as $file) {
+                if (substr($file, -4) === ".json") {
+                    echo "\r\033[K[Reading file " . $file;
+
+                    ["player" => $player, "score" => $score] = json_decode(file_get_contents($this->folder_path . $file), true);
+                    $this->addToScoreboard($player, $score);
+                }
+            }
+            echo "\r\033[K";
+        }
     }
 
     public function addScore(Player $player, int $score) : void
     {
-        $this->scheduler->scheduleAsyncTask(new JSONScoreAddTask($this->folder_path . $player->getLowerCaseName() . ".json", $score));
-    }
-
-    public function addScoreCallback(string $file, int $score) : void
-    {
-        $player = substr($file, strlen($this->folder_path), 5);//5 = strlen(".json")
-        //TODO: Update scoreboard
+        $this->scheduler->scheduleAsyncTask(new JSONScoreAddTask($player->getName(), $this->folder_path, $score));
     }
 }

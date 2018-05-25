@@ -12,6 +12,17 @@ CREATE TABLE IF NOT EXISTS scores (
 -- #    :player string
 -- #    :score int
 INSERT INTO scores (player, score) VALUES(:player, :score)
-ON DUPLICATE KEY UPDATE score=VALUES(score);
+ON DUPLICATE KEY UPDATE score=score+VALUES(score);
 -- #  }
+
+-- #  { fetch_score
+-- #    :player string
+SELECT score FROM scores WHERE player=:player;
+-- #  }
+
+-- # { fetch_top_scores
+-- #    :limit int
+SELECT player, score FROM scores ORDER by score DESC LIMIT :limit;
+-- # }
+
 -- #}

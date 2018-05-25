@@ -163,6 +163,26 @@ class SkyWarsCommand extends PluginCommand implements CommandExecutor {
 
                 $sender->sendMessage(TextFormat::GREEN . "Saved " . $count . " games (" . number_format($t, 10) . "secs).");
                 return true;
+            case "addscore":
+                if (!$sender->isOp()) {
+                    $sender->sendMessage(TextFormat::RED . "You do not have permission to use this command.");
+                    return false;
+                }
+
+                if (!isset($args[1]) || ($args[1] = (int) $args[1]) === 0) {
+                    $sender->sendMessage(TextFormat::RED . "Usage /" . $label . " addscore <score>");
+                    return true;
+                }
+
+                $db = $this->getPlugin()->getDatabase();
+                if ($db === null) {
+                    $sender->sendMessage(TextFormat::RED . "Could not fetch scoring database, make sure scoring is enabled in config.");
+                    return false;
+                }
+
+                $db->addScore($sender, $args[1]);
+                $sender->sendMessage(TextFormat::GREEN . "Added " . $args[1]. " score to yourself!");
+                return true;
         }
 
         $sender->sendMessage(TextFormat::RED . "Invalid command argument '" . $args[0] . "'.");

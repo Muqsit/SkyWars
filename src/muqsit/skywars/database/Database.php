@@ -12,6 +12,9 @@ abstract class Database {
 
     public const TYPE = -1;
 
+    /** @var int[] */
+    private $scoreboard = [];
+
     public static function fromConfig(Loader $plugin, array $config) : ?Database
     {
         switch (strtolower($config["type"])) {
@@ -24,6 +27,42 @@ abstract class Database {
         return null;
     }
 
+    public function __construct()
+    {
+        $this->initializeScoreboard();
+    }
+
+    protected function addToScoreboard(string $player, int $score) : void
+    {
+        if (isset($this->scoreboard[$player]) || count($this->scoreboard) < 10) {
+            $this->scoreboard[$player] = $score;
+        } elseif ($score > ($min = min($this->scoreboard))) {
+            foreach ($this->scoreboard as $key => $score) {
+                if ($score === $min) {
+                    $this->scoreboard[$player] = $score;
+                    unset($this->scoreboard[$key]);
+                    break;
+                }
+            }
+        }
+    }
+
+    /**
+     * Gets the top 10 scores from the database.
+     *
+     * @return array
+     */
+    public function getScoreboard() : array
+    {
+        return $this->scoreboard;
+    }
+
+    /**
+     * Called so databases can initialize themselves after
+     * construction.
+     */
+    abstract public function initializeScoreboard() : void;
+
     /**
      * Adds score to player.
      *
@@ -31,6 +70,18 @@ abstract class Database {
      * @param int $score
      */
     abstract public function addScore(Player $player, int $score) : void;
+
+    /**
+     * Called AFTER the score in the database
+     * has been updated.
+     *
+     * @param string $player
+     * @param int $score
+     */
+    public function onScoreChange(string $player, int $score) : void
+    {
+        $this->addToScoreboard($player, $score);
+    }
 
     /**
      * Called when the plugin disables so
