@@ -128,9 +128,13 @@ class SkyWarsListener implements Listener {
     public function onEntityDamage(EntityDamageEvent $event) : void
     {
         $player = $event->getEntity();
-        if ($player instanceof Player && ($game = $this->game_handler->getGameByPlayer($player)) !== null && $event->getFinalDamage() >= $player->getHealth()) {
-            $event->setCancelled();
-            $game->disqualify($player);
+        if ($player instanceof Player && ($game = $this->game_handler->getGameByPlayer($player)) !== null) {
+            if (!$game->isPvPEnabled()) {
+                $event->setCancelled();
+            } elseif ($event->getFinalDamage() >= $player->getHealth()) {
+                $event->setCancelled();
+                $game->disqualify($player);
+            }
         }
     }
 }

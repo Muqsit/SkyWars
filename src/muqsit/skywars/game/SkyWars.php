@@ -7,6 +7,7 @@ use muqsit\skywars\game\tasks\GameTask;
 use muqsit\skywars\game\tasks\RuntimeTask;
 use muqsit\skywars\integration\Integration;
 use muqsit\skywars\Loader;
+use muqsit\skywars\utils\ChunkBackup;
 use muqsit\skywars\utils\PlayerState;
 use muqsit\skywars\utils\TextUtils;
 
@@ -83,14 +84,22 @@ class SkyWars {
         [
             "name" => $name,
             "level" => $level,
-            "spawns" => $spawns
+            "spawns" => $spawns,
+            "vertex1" => $vertex1,
+            "vertex2" => $vertex2
         ] = $args;
 
         foreach ($spawns as &$spawn) {
             $spawn = new Vector3($spawn["x"], $spawn["y"], $spawn["z"]);
         }
 
-        $instance = new SkyWars($level, $name, ...$spawns);
+        $instance = new SkyWars(
+            $level,
+            $name,
+            new Vector3($vertex1["x"], $vertex1["y"], $vertex1["z"]),
+            new Vector3($vertex2["x"], $vertex2["y"], $vertex2["z"]),
+            ...$spawns
+        );
 
         if (isset($args["min_players"])) {
             $instance->setMinPlayers($args["min_players"]);
@@ -119,6 +128,12 @@ class SkyWars {
 
     /** @var string */
     protected $name;
+
+    /** @var Vector3 */
+    protected $vertex1;
+
+    /** @var Vector3 */
+    protected $vertex2;
 
     /** @var Player[] */
     protected $players = [];
@@ -153,10 +168,16 @@ class SkyWars {
     /** @var int[] */
     protected $taskIds = [];
 
-    public function __construct(string $level_name, string $name, Vector3 ...$spawns)
+    /** @var ChunkBackup */
+    private $chunk_backup;
+
+    public function __construct(string $level_name, string $name, Vector3 $vertex1, Vector3 $vertex2, Vector3 ...$spawns)
     {
         $this->level_name = $level_name;
         $this->name = $name;
+
+        $this->vertex1 = $vertex1;
+        $this->vertex2 = $vertex2;
 
         if (empty($spawns)) {
             throw new \Error("Could not find any spawn points for game $name");
@@ -167,6 +188,34 @@ class SkyWars {
         }
 
         $this->reset();
+    }
+
+    public function createChunkBackup() : void
+    {
+        $chunk_backup = new ChunkBackup($this->level);
+
+        $x = [$this->vertex1->x >> 4, $this->vertex2->x >> 4];
+        $minX = min($x);
+        $maxX = max($x);
+
+        $z = [$this->vertex1->z >> 4, $this->vertex2->z >> 4];
+        $minZ = min($z);
+        $maxZ = max($z);
+
+        for ($x = $minX; $x <= $maxX; ++$x) {
+            for ($z = $minZ; $z <= $maxZ; ++$z) {
+                $chunk_backup->addChunk($x, $z);
+            }
+        }
+
+        $chunk_backup->store();
+        $this->chunk_backup = $chunk_backup;
+    }
+
+    public function restoreChunks() : void
+    {
+        $this->chunk_backup->removeEntities();
+        $this->chunk_backup->restore();
     }
 
     public function setMinPlayers(int $value) : void
@@ -258,6 +307,9 @@ class SkyWars {
             }
 
             $this->level = $level;
+            $this->createChunkBackup();
+        } else {
+            $this->restoreChunks();
         }
 
         $this->setState(SkyWars::STATE_AWAITING_PLAYERS);
@@ -291,6 +343,8 @@ class SkyWars {
         $player->teleport($this->getVacantSpawn($index));
         $this->player_spawn_index[$rawUUID] = $index;
         unset($this->vacant_spawns[$index]);
+
+        $player->setImmobile(true);
 
         $this->updateGameState();
         static::$handler->setPlayerGame($player, $this);
@@ -330,6 +384,8 @@ class SkyWars {
 
         $this->handleLeave($player);
 
+        $player->setImmobile(false);
+
         unset($this->players[$rawUUID], $this->disqualified[$rawUUID]);
         $this->retrievePlayerState($player);
 
@@ -345,7 +401,7 @@ class SkyWars {
 
     public function canModifyTerrain(Player $player) : bool
     {
-        return $this->state <= SkyWars::STATE_COUNTDOWN || $this->isDisqualified($player);
+        return $this->state > SkyWars::STATE_COUNTDOWN && !$this->isDisqualified($player);
     }
 
     public function broadcastMessage(string $message, int $targets = SkyWars::TYPE_ALL_PLAYERS) : void
@@ -354,6 +410,11 @@ class SkyWars {
         if (!empty($players)) {
             $this->level->getServer()->broadcastMessage($message, $players);
         }
+    }
+
+    public function isPvPEnabled() : bool
+    {
+        return $this->state === SkyWars::STATE_ONGOING;
     }
 
     public function broadcastTip(string $tip, int $targets = SkyWars::TYPE_ALL_PLAYERS) : void
@@ -435,6 +496,9 @@ class SkyWars {
                 $this->scheduleTask($task, SkyWarsTasks::TYPE_RUNTIME);
                 break;
             case SkyWars::STATE_ONGOING:
+                foreach ($this->getPlayers() as $player) {
+                    $player->setImmobile(false);
+                }
                 break;
         }
     }
@@ -521,6 +585,16 @@ class SkyWars {
         return [
             "name" => $this->name,
             "level" => $this->level_name,
+            "vertex1" => [
+                "x" => $this->vertex1->x,
+                "y" => $this->vertex1->y,
+                "z" => $this->vertex1->z
+            ],
+            "vertex2" => [
+                "x" => $this->vertex2->x,
+                "y" => $this->vertex2->y,
+                "z" => $this->vertex2->z
+            ],
             "spawns" => array_map(function(Vector3 $pos) : array {
                 return [
                     "x" => $pos->x,

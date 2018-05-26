@@ -101,7 +101,39 @@ class SkyWarsCommand extends PluginCommand implements CommandExecutor {
                     return false;
                 }
 
-                $sender->sendMessage(TextFormat::LIGHT_PURPLE . "Game creation for '" . $args[1] . "' started!" . TextFormat::EOL . "Use " . TextFormat::ITALIC . "/" . $label . " addspawn " . $args[1] . TextFormat::RESET . TextFormat::LIGHT_PURPLE . " to add a spawn point.");
+                $sender->sendMessage(TextFormat::LIGHT_PURPLE . "Game creation for '" . $args[1] . "' started!" . TextFormat::EOL . "Use " . TextFormat::ITALIC . "/" . $label . " setvertex " . $args[1] . TextFormat::RESET . TextFormat::LIGHT_PURPLE . " to mark the two borders of your game.");
+                return true;
+            case "setvertex":
+                if (!$sender->isOp()) {
+                    $sender->sendMessage(TextFormat::RED . "You do not have permission to use this command.");
+                    return false;
+                }
+
+                if (!isset($args[1]) || !isset($args[2]) || (($args[2] = (int) $args[2]) !== 1 && $args[2] !== 2)) {
+                    $sender->sendMessage(TextFormat::RED . "Usage /" . $label . " setvertex <game> <1 or 2>");
+                    return true;
+                }
+
+                $creator = $this->getPlugin()->getGameHandler()->getCreating($args[1]);
+                if ($creator === null) {
+                    $sender->sendMessage(TextFormat::RED . "No skywars game with the name '" . $args[1] . "' is being configured, use /" . $label . " create " . $args[1] . " to configure a skywars game.");
+                    return false;
+                }
+
+                switch ($args[2]) {
+                    case 1:
+                        $creator->setVertex1($sender);
+                        break;
+                    case 2:
+                        $creator->setVertex2($sender);
+                        break;
+                }
+
+                $sender->sendMessage(TextFormat::GREEN . "Set Vertex #" . $args[2] . " for " . $creator->getName() . "!");
+
+                if ($creator->getVertex1() !== null && $creator->getVertex2() !== null) {
+                    $sender->sendMessage(TextFormat::LIGHT_PURPLE . "Use " . TextFormat::ITALIC . "/" . $label . " addspawn " . $args[1] . TextFormat::RESET . TextFormat::LIGHT_PURPLE . " to add a spawn point.");
+                }
                 return true;
             case "addspawn":
                 if (!$sender->isOp()) {
@@ -148,6 +180,31 @@ class SkyWarsCommand extends PluginCommand implements CommandExecutor {
                 }
 
                 $sender->sendMessage(TextFormat::GREEN . "Successfully published game '" . $creator->getName() . "', you can join it using /" . $label . " join " . $creator->getName() . ".");
+                return true;
+            case "rebackup":
+                if (!$sender->isOp()) {
+                    $sender->sendMessage(TextFormat::RED . "You do not have permission to use this command.");
+                    return false;
+                }
+
+                if (!isset($args[1])) {
+                    $sender->sendMessage(TextFormat::RED . "Usage /" . $label . " rebackup <game>");
+                    return true;
+                }
+
+                $game = $this->getPlugin()->getGameHandler()->get($args[1]);
+                if ($game === null) {
+                    $sender->sendMessage(TextFormat::RED . "No skywars game with the name '" . $args[1] . "' is being configured, use /" . $label . " create " . $args[1] . " to configure a skywars game.");
+                    return false;
+                }
+
+                $sender->sendMessage(TextFormat::YELLOW . "Recreating restore-chunks array for '" . $game->getName() . "'...");
+
+                $t = microtime(true);
+                $game->createChunkBackup();
+                $t = microtime(true) - $t;
+
+                $sender->sendMessage(TextFormat::GREEN . "Recreated restore-chunks array for '" . $game->getName() . "' (" . number_format($t, 10) . "secs).");
                 return true;
             case "save":
                 if (!$sender->isOp()) {
