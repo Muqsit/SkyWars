@@ -4,8 +4,11 @@ namespace muqsit\skywars;
 use muqsit\skywars\database\Database;
 use muqsit\skywars\game\SkyWars;
 use muqsit\skywars\integration\Integration;
+use muqsit\skywars\utils\loot\LootTable;
+use muqsit\skywars\utils\FloatingScoreboard;
 
 use pocketmine\lang\BaseLang;
+use pocketmine\level\Position;
 use pocketmine\plugin\PluginBase;
 
 class Loader extends PluginBase {
@@ -22,6 +25,9 @@ class Loader extends PluginBase {
     /** @var Database|null */
     private $database;
 
+    /** @var FloatingScoreboard[] */
+    private $scoreboards = [];
+
     public function onEnable() : void
     {
         $integrations = Integration::init($this->getServer()->getPluginManager());
@@ -37,13 +43,9 @@ class Loader extends PluginBase {
         $this->sign_handler = new SignHandler($this);
 
         $this->initGames();
+        $this->loadScoreboards();
 
         $this->getServer()->getCommandMap()->register($this->getName(), new SkyWarsCommand($this));
-
-        $pos = $this->getServer()->getDefaultLevel()->getSpawnLocation();
-        $pos->x += 0.5;
-        $pos->z += 0.5;
-        new \muqsit\skywars\utils\FloatingScoreboard($pos, $this->getDatabase());
     }
 
     private function saveResources() : void
@@ -56,12 +58,16 @@ class Loader extends PluginBase {
         }
 
         $this->saveResource("config.yml");
+        $this->saveResource("scoreboards.yml");
         $this->saveResource("signs.yml");
+        $this->saveResource("loottable.yml");
 
         $this->saveResource("lang/eng.ini");
         $this->saveResource("lang/" . $this->getServer()->getLanguage()->getName() . ".ini");
 
         $this->saveResource("mysql/scoring.sql");
+
+        LootTable::load(yaml_parse_file($this->getDataFolder() . "loottable.yml"));
     }
 
     private function createDatabase() : void
@@ -76,6 +82,29 @@ class Loader extends PluginBase {
     {
         $lang = $this->getServer()->getLanguage()->getLang();
         $this->lang = new BaseLang($lang, $this->getDataFolder() . "lang/");
+    }
+
+    private function loadScoreboards() : void
+    {
+        if ($this->getConfig()->get("scoring")["enable"]) {
+            $server = $this->getServer();
+            $database = $this->getDatabase();
+
+            foreach (yaml_parse_file($this->getDataFolder() . "scoreboards.yml") as $pos) {
+                $position = new Position($pos["x"], $pos["y"], $pos["z"], $server->getLevelByName($pos["level"]));
+                $this->scoreboards[] = new FloatingScoreboard($position, $database);
+            }
+        }
+    }
+
+    public function addScoreboard(Position $pos) : bool
+    {
+        if ($this->getConfig()->get("scoring")["enable"]) {
+            $this->scoreboards[] = new FloatingScoreboard($pos->asPosition(), $this->getDatabase());
+            return true;
+        }
+
+        return false;
     }
 
     private function loadGames() : void
@@ -114,6 +143,7 @@ class Loader extends PluginBase {
         $this->saveGames();
         $this->getSignHandler()->save();
         $this->closeDatabase();
+        $this->saveScoreboards();
     }
 
     public function saveGames() : void
@@ -125,6 +155,24 @@ class Loader extends PluginBase {
         }
 
         $handler->save();
+    }
+
+    private function saveScoreboards() : void
+    {
+        if ($this->getConfig()->get("scoring")["enable"]) {
+            $scoreboards = [];
+            foreach ($this->scoreboards as $scoreboard) {
+                $scoreboard->close();
+                $scoreboards[] = [
+                    "x" => $scoreboard->x,
+                    "y" => $scoreboard->y,
+                    "z" => $scoreboard->z,
+                    "level" => $scoreboard->getLevel()->getFolderName()
+                ];
+            }
+
+            yaml_emit_file($this->getDataFolder() . "scoreboards.yml", $scoreboards);
+        }
     }
 
     public function closeDatabase() : void

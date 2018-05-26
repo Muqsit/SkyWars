@@ -1,0 +1,66 @@
+---
+levels:
+  level-1:
+    max-items: 1
+    chance: 35
+  level-2:
+    max-items: 3
+    chance: 35
+  level-3:
+    max-items: 5
+    chance: 10
+  level-4:
+    max-items: 7
+    chance: 5
+  level-5:
+    max-items: 10
+    chance: 15
+items:
+  level-1:
+  - "WOODEN_SWORD"
+  - "LEATHER_HELMET"
+  - "LEATHER_CHESTPLATE"
+  - "LEATHER_LEGGINGS"
+  - "LEATHER_BOOTS"
+  - "RAW_PORKCHOP:0:3"
+  - "RAW_FISH:0:3"
+  - "APPLE:0:3"
+  - "ARROW:0:5"
+  level-2:
+  - "WOODEN_SWORD"
+  - "GOLDEN_HELMET"
+  - "GOLDEN_CHESTPLATE"
+  - "GOLDEN_LEGGINGS"
+  - "GOLDEN_BOOTS"
+  - "MUSHROOM_STEW:0:3"
+  - "COOKED_PORKCHOP:0:4"
+  - "BOWL:0:2"
+  - "APPLE:0:4"
+  - "RAW_BEEF:0:2"
+  - "COOKED_BEEF:0:4"
+  - "RAW_CHICKEN:0:2"
+  - "COOKED_CHICKEN:0:2"
+  - "ENDER_PEARL:0:1"
+  level-3:
+  - "IRON_HELMET"
+  - "IRON_CHESTPLATE"
+  - "IRON_LEGGINGS"
+  - "IRON_BOOTS"
+  - "GOLDEN_SWORD"
+  - "CHAINMAIL_HELMET"
+  - "CHAINMAIL_CHESTPLATE"
+  - "CHAINMAIL_BOOTS"
+  - "MELON_BLOCK:0:4"
+  - "GOLDEN_APPLE:0:2"
+  - "FLINT_AND_STEEL"
+  - "GOLDEN_SWORD"
+  level-4:
+  - "IRON_SWORD"
+  level-5:
+  - "DIAMOND_SWORD"
+  - "DIAMOND_HELMET"
+  - "DIAMOND_CHESTPLATE"
+  - "DIAMOND_LEGGINGS"
+  - "DIAMOND_BOOTS"
+  - "CAKE:0:2"
+...

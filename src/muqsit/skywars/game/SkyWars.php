@@ -8,6 +8,7 @@ use muqsit\skywars\game\tasks\RuntimeTask;
 use muqsit\skywars\integration\Integration;
 use muqsit\skywars\Loader;
 use muqsit\skywars\utils\ChunkBackup;
+use muqsit\skywars\utils\loot\LootTable;
 use muqsit\skywars\utils\PlayerState;
 use muqsit\skywars\utils\TextUtils;
 
@@ -16,6 +17,7 @@ use pocketmine\level\Level;
 use pocketmine\math\Vector3;
 use pocketmine\Player;
 use pocketmine\Server;
+use pocketmine\tile\Chest;
 
 class SkyWars {
 
@@ -216,6 +218,36 @@ class SkyWars {
     {
         $this->chunk_backup->removeEntities();
         $this->chunk_backup->restore();
+    }
+
+    public function refillChests() : void
+    {
+        $x = [$this->vertex1->x, $this->vertex2->x];
+        $minX = min($x);
+        $maxX = max($x);
+
+        $z = [$this->vertex1->z, $this->vertex2->z];
+        $minZ = min($z);
+        $maxZ = max($z);
+
+        $slots = range(0, 26);
+
+        foreach ($this->level->getTiles() as $tile) {
+            if ($tile instanceof Chest && $tile->x >= $minX && $tile->x <= $maxX && $tile->z >= $minZ && $tile->z <= $maxZ) {
+                $inventory = $tile->getInventory();
+                $inventory->clearAll(false);
+
+                shuffle($slots);
+                $i = 0;
+                $limit = mt_rand(1, 10);
+
+                while (--$limit >= 0) {
+                    $item = LootTable::getRandomLevel()->getRandom();
+                    $inventory->setItem($slots[++$i], $item, false);
+                }
+                $inventory->sendContents($inventory->getViewers());
+            }
+        }
     }
 
     public function setMinPlayers(int $value) : void
@@ -511,6 +543,8 @@ class SkyWars {
                 foreach ($this->getPlayers() as $player) {
                     $player->setImmobile(false);
                 }
+
+                $this->refillChests();
                 break;
         }
     }

@@ -240,6 +240,19 @@ class SkyWarsCommand extends PluginCommand implements CommandExecutor {
                 $db->addScore($sender, $args[1]);
                 $sender->sendMessage(TextFormat::GREEN . "Added " . $args[1]. " score to yourself!");
                 return true;
+            case "addscoreboard":
+                if (!$sender->isOp()) {
+                    $sender->sendMessage(TextFormat::RED . "You do not have permission to use this command.");
+                    return false;
+                }
+
+                if (!$this->getPlugin()->addScoreboard($sender)) {
+                    $sender->sendMessage(TextFormat::RED . "Could not fetch scoring database, make sure scoring is enabled in config.");
+                    return false;
+                }
+
+                $sender->sendMessage(TextFormat::GREEN . "Installed scoreboard at your position!");
+                return true;
         }
 
         $sender->sendMessage(TextFormat::RED . "Invalid command argument '" . $args[0] . "'.");

@@ -41,6 +41,9 @@ class FloatingScoreboard extends Position {
     /** @var Database */
     private $database;
 
+    /** @var bool */
+    private $despawn = false;
+
     public function __construct(Position $pos, Database $database)
     {
         parent::__construct($pos->x, $pos->y, $pos->z, $pos->level);
@@ -134,9 +137,23 @@ class FloatingScoreboard extends Position {
         $this->level->getServer()->broadcastPacket($this->hasSpawned, $this->metadata_packet = $pk);
     }
 
+    public function despawn() : void
+    {
+        foreach ($this->hasSpawned as $player) {
+            $player->dataPacket($this->despawn_packet);
+        }
+
+        $this->hasSpawned = [];
+    }
+
+    public function close() : void
+    {
+        $this->despawn = true;
+    }
+
     public function onUpdate(int $tick) : bool
     {
-        if (!$this->isValid()) {
+        if (!$this->isValid() || $this->despawn) {
             return false;
         }
 
