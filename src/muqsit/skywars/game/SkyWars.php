@@ -316,7 +316,7 @@ class SkyWars {
 
         if (!empty($this->players)) {
             foreach ($this->players as $player) {
-                $this->remove($player);
+                $this->remove($player, true);
             }
         }
 
@@ -345,6 +345,7 @@ class SkyWars {
         unset($this->vacant_spawns[$index]);
 
         $player->setImmobile(true);
+        $player->setGamemode(Player::SURVIVAL);
 
         $this->updateGameState();
         static::$handler->setPlayerGame($player, $this);
@@ -361,22 +362,31 @@ class SkyWars {
 
         $this->handleDisqualify($player);
 
+        $death_score = null;
+        $kill_score = null;
+
+        if (SkyWars::$scoring !== null) {
+            SkyWars::$database->addScore($player, $death_score = SkyWars::$scoring["death-score"]);
+            if ($disqualifier !== null) {
+                SkyWars::$database->addScore($disqualifier, $kill_score = SkyWars::$scoring["kill-score"]);
+            }
+        }
+
+        if ($disqualifier !== null) {
+            $player->sendMessage(SkyWars::translate("death.by.player.message", $disqualifier->getName(), $death_score));
+            $disqualifier->sendMessage(SkyWars::translate("kill.message", $player->getName(), $kill_score));
+        } else {
+            $player->sendMessage(SkyWars::translate("death.by.other.message", $death_score));
+        }
+
         $this->disqualified[$rawUUID] = 0;
         $player->setGamemode(Player::SPECTATOR);
 
         $this->updateGameState();
-
-        if (SkyWars::$scoring !== null) {
-            SkyWars::$database->addScore($player, SkyWars::$scoring["death-score"]);
-            if ($disqualifier !== null) {
-                SkyWars::$database->addScore($disqualifier, SkyWars::$scoring["kill-score"]);
-            }
-        }
-
         return true;
     }
 
-    public function remove(Player $player) : void
+    public function remove(Player $player, bool $game_ended = false) : void
     {
         if (!isset($this->players[$rawUUID = $player->getRawUniqueId()])) {
             throw new \Error("Attempted to remove a player that didn't join the game.");
@@ -394,7 +404,7 @@ class SkyWars {
         unset($this->player_spawn_index[$rawUUID]);
 
         $this->updateGameState();
-        static::$handler->setPlayerGame($player, null);
+        static::$handler->setPlayerGame($player, null, $game_ended);
 
         SkyWars::$sign_handler->updateSigns($this);
     }
@@ -467,9 +477,12 @@ class SkyWars {
                         }
                     }
 
+                    $score = null;
                     if (SkyWars::$scoring !== null) {
-                        SkyWars::$database->addScore($winner, SkyWars::$scoring["win-score"]);
+                        SkyWars::$database->addScore($winner, $score = SkyWars::$scoring["win-score"]);
                     }
+
+                    $winner->sendMessage(SkyWars::translate("win.message", $this->getName(), $score));
                 }
                 break;
         }
@@ -494,8 +507,7 @@ class SkyWars {
                 $this->cancelTask(SkyWarsTasks::TYPE_COUNTDOWN);
                 $task = new RuntimeTask($this);
                 $this->scheduleTask($task, SkyWarsTasks::TYPE_RUNTIME);
-                break;
-            case SkyWars::STATE_ONGOING:
+
                 foreach ($this->getPlayers() as $player) {
                     $player->setImmobile(false);
                 }

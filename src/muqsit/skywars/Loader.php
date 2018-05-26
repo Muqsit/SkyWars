@@ -40,7 +40,10 @@ class Loader extends PluginBase {
 
         $this->getServer()->getCommandMap()->register($this->getName(), new SkyWarsCommand($this));
 
-        new \muqsit\skywars\utils\FloatingScoreboard($this->getServer()->getDefaultLevel()->getSafeSpawn(), $this->getDatabase());
+        $pos = $this->getServer()->getDefaultLevel()->getSpawnLocation();
+        $pos->x += 0.5;
+        $pos->z += 0.5;
+        new \muqsit\skywars\utils\FloatingScoreboard($pos, $this->getDatabase());
     }
 
     private function saveResources() : void

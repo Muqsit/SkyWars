@@ -6,6 +6,9 @@
 center-aligned-messages:
  - broadcast.winner
 
+# Whether to automatically rejoin players to the game when the game ends.
+auto-rejoin-games: false
+
 # Message format for all join signs
 sign-format:
  - '&f&lSkyWars&r'

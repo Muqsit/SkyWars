@@ -8,6 +8,7 @@ use pocketmine\event\Listener;
 use pocketmine\event\block\BlockBreakEvent;
 use pocketmine\event\block\BlockPlaceEvent;
 use pocketmine\event\block\SignChangeEvent;
+use pocketmine\event\entity\EntityDamageByEntityEvent;
 use pocketmine\event\entity\EntityDamageEvent;
 use pocketmine\event\player\PlayerInteractEvent;
 use pocketmine\event\player\PlayerQuitEvent;
@@ -133,7 +134,17 @@ class SkyWarsListener implements Listener {
                 $event->setCancelled();
             } elseif ($event->getFinalDamage() >= $player->getHealth()) {
                 $event->setCancelled();
-                $game->disqualify($player);
+
+                $disqualifier = null;
+
+                if (
+                    ($event instanceof EntityDamageByEntityEvent && ($damager = $event->getDamager()) instanceof Player) ||
+                    (($last_event = $player->getLastDamageCause()) instanceof EntityDamageByEntityEvent && ($damager = $last_event->getDamager()) instanceof Player)
+                ) {
+                    $disqualifier = $damager;
+                }
+
+                $game->disqualify($player, $disqualifier);
             }
         }
     }

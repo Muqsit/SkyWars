@@ -27,8 +27,12 @@ class GameHandler {
     /** @var SignHandler */
     private $sign_handler;
 
+    /** @var bool */
+    private $auto_rejoin;
+
     public function init(Loader $plugin) : void
     {
+        $this->auto_rejoin = $plugin->getConfig()->get("auto-rejoin-games");
         $this->sign_handler = $plugin->getSignHandler();
         $this->config_path = $plugin->getDataFolder() . "games.yml";
 
@@ -137,10 +141,16 @@ class GameHandler {
         return $this->get($this->player_games[$player->getId()] ?? "");
     }
 
-    public function setPlayerGame(Player $player, ?SkyWars $game) : void
+    public function setPlayerGame(Player $player, ?SkyWars $game, bool $game_ended = false) : void
     {
         if ($game === null) {
-            unset($this->player_games[$player->getId()]);
+            if (isset($this->player_games[$pid = $player->getId()])) {
+                $game = $this->player_games[$pid];
+                unset($this->player_games[$pid]);
+                if ($game_ended && $this->auto_rejoin) {
+                    $this->get($game)->add($player);
+                }
+            }
         } else {
             $previous_game = $this->getGameByPlayer($player);
             if ($previous_game !== null) {
