@@ -1,4 +1,6 @@
 <?php
+
+declare(strict_types=1);
 namespace muqsit\skywars\utils;
 
 use muqsit\skywars\database\Database;
@@ -13,9 +15,26 @@ use pocketmine\network\mcpe\protocol\RemoveEntityPacket;
 use pocketmine\network\mcpe\protocol\SetEntityDataPacket;
 use pocketmine\scheduler\Task;
 use pocketmine\Server;
+use pocketmine\utils\TextFormat;
 use pocketmine\utils\UUID;
 
 class FloatingScoreboard extends Position {
+
+    /** @var string */
+    private static $title;
+
+    /** @var string */
+    private static $line_format;
+
+    public static function setTitle(string $title) : void
+    {
+        FloatingScoreboard::$title = TextFormat::colorize($title);
+    }
+
+    public static function setLineFormat(string $line) : void
+    {
+        FloatingScoreboard::$line_format = TextFormat::colorize($line);
+    }
 
     /** @var Player[] */
     private $hasSpawned = [];
@@ -119,15 +138,18 @@ class FloatingScoreboard extends Position {
 
     private function sendUpdates() : void
     {
-        $update = "Top #10 Players\n";
-
         $scores = $this->database->getScoreboard();
         arsort($scores);
 
+        $update = FloatingScoreboard::$title . TextFormat::EOL;
         $i = 0;
 
         foreach ($scores as $player => $score) {
-            $update .= ++$i . ". " . $player . " => " . $score . "\n";
+            $update .= strtr(FloatingScoreboard::$line_format, [
+                '{RANK}' => ++$i,
+                '{PLAYER}' => $player,
+                '{SCORE}' => $score
+            ]) . TextFormat::EOL;
         }
 
         $pk = new SetEntityDataPacket();

@@ -9,6 +9,19 @@ center-aligned-messages:
 # Whether to automatically rejoin players to the game when the game ends.
 auto-rejoin-games: false
 
+# Whether to round SkyWars spawn positions to the block's center.
+# This will apply to spawn positions of games created henceforth.
+auto-center-spawns: true
+
+# These options apply for players in the waiting queue.
+waiting-queue:
+  # Whether to disable movement.
+  deny-movement: true
+  # Whether to trap players in a box.
+  block-trap-players: true
+  # The blockId out of which the box will be created.
+  block-trap-block: "STAINED_GLASS:15"
+
 # Message format for all join signs
 sign-format:
  - '&f&lSkyWars&r'
@@ -40,4 +53,13 @@ scoring:
       schema: skywars_scores
       port: 3306
       socket: ""
+  # Scoreboard options
+  scoreboard:
+    # The number of players to display on the scoreboard.
+    display-limit: 10
+    # Scoreboard display format.
+    display-format:
+      # The title of the scoreboard.
+      title: "&e&l>> &6SkyWars &e<<&r\n&eLeaderboards - Score"
+      line: '&6{RANK} &7- &f{PLAYER} &7- &b{SCORE}'
 ...

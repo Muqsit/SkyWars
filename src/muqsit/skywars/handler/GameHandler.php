@@ -1,7 +1,10 @@
 <?php
-namespace muqsit\skywars;
+
+declare(strict_types=1);
+namespace muqsit\skywars\handler;
 
 use muqsit\skywars\game\SkyWars;
+use muqsit\skywars\Loader;
 use muqsit\skywars\utils\GameCreator;
 
 use pocketmine\level\Level;

@@ -1,4 +1,6 @@
 <?php
+
+declare(strict_types=1);
 namespace muqsit\skywars\integration;
 
 use muqsit\skywars\integration\economy\EconomyIntegration;

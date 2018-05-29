@@ -3,6 +3,8 @@
  * Ported from MiNET
  * https://github.com/NiclasOlofsson/MiNET/blob/master/src/MiNET/MiNET/Utils/TextUtils.cs
  */
+
+declare(strict_types=1);
 namespace muqsit\skywars\utils;
 
 use pocketmine\utils\TextFormat;

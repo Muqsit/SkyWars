@@ -1,4 +1,6 @@
 <?php
+
+declare(strict_types=1);
 namespace muqsit\skywars\database;
 
 use muqsit\skywars\database\tasks\JSONScoreAddTask;
@@ -37,7 +39,7 @@ class MySQLDatabase extends Database {
         $database = $this;
 
         $this->database->executeSelect(MySQLDatabase::FETCH_TOP_SCORES_QUERY, [
-            "limit" => 10
+            "limit" => Database::$scoreboard_display_limit
         ], function(array $rows) use ($database) : void {
             foreach ($rows as ["player" => $player, "score" => $score]) {
                 $database->onScoreChange($player, $score);

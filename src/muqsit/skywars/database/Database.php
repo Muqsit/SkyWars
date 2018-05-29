@@ -1,4 +1,6 @@
 <?php
+
+declare(strict_types=1);
 namespace muqsit\skywars\database;
 
 use muqsit\skywars\Loader;
@@ -11,6 +13,14 @@ abstract class Database {
     public const MYSQL = 1;
 
     public const TYPE = -1;
+
+    /** @var int */
+    public static $scoreboard_display_limit = 10;
+
+    public static function setScoreboardDisplayLimit(int $limit) : void
+    {
+        Database::$scoreboard_display_limit = $limit;
+    }
 
     /** @var int[] */
     private $scoreboard = [];
@@ -34,7 +44,7 @@ abstract class Database {
 
     protected function addToScoreboard(string $player, int $score) : void
     {
-        if (isset($this->scoreboard[$player]) || count($this->scoreboard) < 10) {
+        if (isset($this->scoreboard[$player]) || count($this->scoreboard) < Database::$scoreboard_display_limit) {
             $this->scoreboard[$player] = $score;
         } elseif ($score > ($min = min($this->scoreboard))) {
             foreach ($this->scoreboard as $key => $score) {
@@ -48,7 +58,8 @@ abstract class Database {
     }
 
     /**
-     * Gets the top 10 scores from the database.
+     * Gets the top scoreboard_display_limit scores
+     * from the database.
      *
      * @return array
      */

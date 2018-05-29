@@ -1,4 +1,6 @@
 <?php
+
+declare(strict_types=1);
 namespace muqsit\skywars;
 
 use pocketmine\command\Command;
@@ -246,7 +248,7 @@ class SkyWarsCommand extends PluginCommand implements CommandExecutor {
                     return false;
                 }
 
-                if (!$this->getPlugin()->addScoreboard($sender)) {
+                if (!$this->getPlugin()->getScoreboardHandler()->add($sender)) {
                     $sender->sendMessage(TextFormat::RED . "Could not fetch scoring database, make sure scoring is enabled in config.");
                     return false;
                 }

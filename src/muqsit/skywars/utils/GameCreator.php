@@ -1,4 +1,6 @@
 <?php
+
+declare(strict_types=1);
 namespace muqsit\skywars\utils;
 
 use muqsit\skywars\GameHandler;
@@ -8,6 +10,15 @@ use pocketmine\level\Level;
 use pocketmine\math\Vector3;
 
 class GameCreator {
+
+    /** @var bool */
+    private static $auto_centering = true;
+
+    public static function setAutoCentering(bool $value) : void
+    {
+        GameCreator::$auto_centering = $value;
+    }
+
 
     /** @var GameHandler */
     private $handler;
@@ -61,7 +72,7 @@ class GameCreator {
 
     public function addSpawn(Vector3 $pos) : int
     {
-        $this->spawns[] = $pos->asVector3();
+        $this->spawns[] = GameCreator::$auto_centering ? $pos->floor()->add(0.5, 0, 0.5) : $pos->asVector3();
         return count($this->spawns);
     }
 

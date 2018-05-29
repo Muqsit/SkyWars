@@ -1,11 +1,16 @@
 <?php
+
+declare(strict_types=1);
 namespace muqsit\skywars;
 
 use muqsit\skywars\database\Database;
 use muqsit\skywars\game\SkyWars;
+use muqsit\skywars\handler\GameHandler;
+use muqsit\skywars\handler\ScoreboardHandler;
+use muqsit\skywars\handler\SignHandler;
 use muqsit\skywars\integration\Integration;
 use muqsit\skywars\utils\loot\LootTable;
-use muqsit\skywars\utils\FloatingScoreboard;
+use muqsit\skywars\utils\GameCreator;
 
 use pocketmine\lang\BaseLang;
 use pocketmine\level\Position;
@@ -19,14 +24,14 @@ class Loader extends PluginBase {
     /** @var SignHandler */
     private $sign_handler;
 
+    /** @var ScoreboardHandler */
+    private $scoreboard_handler;
+
     /** @var BaseLang */
     private $lang;
 
     /** @var Database|null */
     private $database;
-
-    /** @var FloatingScoreboard[] */
-    private $scoreboards = [];
 
     public function onEnable() : void
     {
@@ -41,9 +46,9 @@ class Loader extends PluginBase {
 
         $this->loadGames();
         $this->sign_handler = new SignHandler($this);
+        $this->scoreboard_handler = new ScoreboardHandler($this);
 
         $this->initGames();
-        $this->loadScoreboards();
 
         $this->getServer()->getCommandMap()->register($this->getName(), new SkyWarsCommand($this));
     }
@@ -68,6 +73,7 @@ class Loader extends PluginBase {
         $this->saveResource("mysql/scoring.sql");
 
         LootTable::load(yaml_parse_file($this->getDataFolder() . "loottable.yml"));
+        GameCreator::setAutoCentering($this->getConfig()->get("auto-center-spawns"));
     }
 
     private function createDatabase() : void
@@ -82,29 +88,6 @@ class Loader extends PluginBase {
     {
         $lang = $this->getServer()->getLanguage()->getLang();
         $this->lang = new BaseLang($lang, $this->getDataFolder() . "lang/");
-    }
-
-    private function loadScoreboards() : void
-    {
-        if ($this->getConfig()->get("scoring")["enable"]) {
-            $server = $this->getServer();
-            $database = $this->getDatabase();
-
-            foreach (yaml_parse_file($this->getDataFolder() . "scoreboards.yml") as $pos) {
-                $position = new Position($pos["x"], $pos["y"], $pos["z"], $server->getLevelByName($pos["level"]));
-                $this->scoreboards[] = new FloatingScoreboard($position, $database);
-            }
-        }
-    }
-
-    public function addScoreboard(Position $pos) : bool
-    {
-        if ($this->getConfig()->get("scoring")["enable"]) {
-            $this->scoreboards[] = new FloatingScoreboard($pos->asPosition(), $this->getDatabase());
-            return true;
-        }
-
-        return false;
     }
 
     private function loadGames() : void
@@ -138,12 +121,18 @@ class Loader extends PluginBase {
         return $this->sign_handler;
     }
 
+    public function getScoreboardHandler() : ScoreboardHandler
+    {
+        return $this->scoreboard_handler;
+    }
+
     public function onDisable() : void
     {
         $this->saveGames();
         $this->getSignHandler()->save();
+        $this->getScoreboardHandler()->save();
+
         $this->closeDatabase();
-        $this->saveScoreboards();
     }
 
     public function saveGames() : void
@@ -155,24 +144,6 @@ class Loader extends PluginBase {
         }
 
         $handler->save();
-    }
-
-    private function saveScoreboards() : void
-    {
-        if ($this->getConfig()->get("scoring")["enable"]) {
-            $scoreboards = [];
-            foreach ($this->scoreboards as $scoreboard) {
-                $scoreboard->close();
-                $scoreboards[] = [
-                    "x" => $scoreboard->x,
-                    "y" => $scoreboard->y,
-                    "z" => $scoreboard->z,
-                    "level" => $scoreboard->getLevel()->getFolderName()
-                ];
-            }
-
-            yaml_emit_file($this->getDataFolder() . "scoreboards.yml", $scoreboards);
-        }
     }
 
     public function closeDatabase() : void

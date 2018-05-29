@@ -1,4 +1,6 @@
 <?php
+
+declare(strict_types=1);
 namespace muqsit\skywars\database\tasks;
 
 use pocketmine\scheduler\AsyncTask;

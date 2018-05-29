@@ -1,4 +1,6 @@
 <?php
+
+declare(strict_types=1);
 namespace muqsit\skywars\game;
 
 use muqsit\skywars\GameHandler;
@@ -7,11 +9,14 @@ use muqsit\skywars\game\tasks\GameTask;
 use muqsit\skywars\game\tasks\RuntimeTask;
 use muqsit\skywars\integration\Integration;
 use muqsit\skywars\Loader;
+use muqsit\skywars\utils\BlockUtils;
 use muqsit\skywars\utils\ChunkBackup;
 use muqsit\skywars\utils\loot\LootTable;
 use muqsit\skywars\utils\PlayerState;
 use muqsit\skywars\utils\TextUtils;
 
+use pocketmine\block\Block;
+use pocketmine\item\ItemFactory;
 use pocketmine\lang\BaseLang;
 use pocketmine\level\Level;
 use pocketmine\math\Vector3;
@@ -50,14 +55,29 @@ class SkyWars {
     /** @var Database */
     protected static $database;
 
+    /** @var array */
+    protected static $waiting_queue_opts;
+
     public static function init(Loader $plugin) : void
     {
-        SkyWars::$center_aligned = array_flip($plugin->getConfig()->get("center-aligned-messages"));
+        $config = $plugin->getConfig();
+
+        SkyWars::$center_aligned = array_flip($config->get("center-aligned-messages"));
         SkyWars::$handler = $plugin->getGameHandler();
         SkyWars::$lang = $plugin->getLanguage();
         SkyWars::$sign_handler = $plugin->getSignHandler();
+        SkyWars::$waiting_queue_opts = $config->get("waiting-queue");
 
-        $scoring = $plugin->getConfig()->get("scoring");
+        if (SkyWars::$waiting_queue_opts["block-trap-players"]) {
+            $block = ItemFactory::fromString(SkyWars::$waiting_queue_opts["block-trap-block"])->getBlock();
+            if ($block->getId() === Block::AIR) {
+                SkyWars::$waiting_queue_opts["block-trap-players"] = false;
+            } else {
+                SkyWars::$waiting_queue_opts["block-trap-block"] = [$block->getId(), $block->getDamage()];
+            }
+        }
+
+        $scoring = $config->get("scoring");
         if ($scoring["enable"]) {
             SkyWars::$scoring = [
                 "win-score" => $scoring["win-score"],
@@ -376,7 +396,15 @@ class SkyWars {
         $this->player_spawn_index[$rawUUID] = $index;
         unset($this->vacant_spawns[$index]);
 
-        $player->setImmobile(true);
+        if (SkyWars::$waiting_queue_opts["deny-movement"]) {
+            $player->setImmobile(true);
+        }
+
+        if (SkyWars::$waiting_queue_opts["block-trap-players"]) {
+            [$blockId, $blockMeta] = SkyWars::$waiting_queue_opts["block-trap-block"];
+            BlockUtils::trapPlayerInBox($player, $blockId, $blockMeta);
+        }
+
         $player->setGamemode(Player::SURVIVAL);
 
         $this->updateGameState();
@@ -426,7 +454,14 @@ class SkyWars {
 
         $this->handleLeave($player);
 
-        $player->setImmobile(false);
+        if ($this->state <= SkyWars::STATE_COUNTDOWN) {
+            if (SkyWars::$waiting_queue_opts["deny-movement"]) {
+                $player->setImmobile(false);
+            }
+            if (SkyWars::$waiting_queue_opts["block-trap-players"]) {
+                BlockUtils::trapPlayerInBox($player);
+            }
+        }
 
         unset($this->players[$rawUUID], $this->disqualified[$rawUUID]);
         $this->retrievePlayerState($player);
@@ -540,8 +575,17 @@ class SkyWars {
                 $task = new RuntimeTask($this);
                 $this->scheduleTask($task, SkyWarsTasks::TYPE_RUNTIME);
 
-                foreach ($this->getPlayers() as $player) {
-                    $player->setImmobile(false);
+                if (SkyWars::$waiting_queue_opts["deny-movement"]) {
+                    $untrap_players = SkyWars::$waiting_queue_opts["block-trap-players"];
+                    foreach ($this->getPlayers() as $player) {
+                        $player->setImmobile(false);
+                    }
+                }
+
+                if (SkyWars::$waiting_queue_opts["block-trap-players"]) {
+                    foreach ($this->getPlayers() as $player) {
+                        BlockUtils::trapPlayerInBox($player);
+                    }
                 }
 
                 $this->refillChests();
