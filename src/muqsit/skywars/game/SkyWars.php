@@ -366,10 +366,8 @@ class SkyWars {
 
         $this->setState(SkyWars::STATE_AWAITING_PLAYERS);
 
-        if (!empty($this->players)) {
-            foreach ($this->players as $player) {
-                $this->remove($player, true);
-            }
+        foreach ($this->players as $player) {
+            $this->remove($player, true);
         }
 
         $this->vacant_spawns = $this->spawns;
@@ -590,6 +588,10 @@ class SkyWars {
 
                 $this->refillChests();
                 break;
+        }
+
+        if (isset(SkyWars::$sign_handler)) {
+            SkyWars::$sign_handler->updateSigns($this);
         }
     }
 

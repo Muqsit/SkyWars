@@ -26,10 +26,14 @@ class SignHandler {
     /** @var GameHandler */
     private $game_handler;
 
+    /** @var BaseLang */
+    private $language;
+
     public function __construct(Loader $plugin)
     {
         $this->game_handler = $plugin->getGameHandler();
         $this->path = $plugin->getDataFolder() . "signs.yml";
+        $this->language = $plugin->getLanguage();
 
         $this->text = array_map([TextFormat::class, "colorize"], $plugin->getConfig()->get("sign-format"));
         while (count($this->text) < 4) {
@@ -77,11 +81,13 @@ class SignHandler {
         return str_replace([
             '{NAME}',
             '{PLAYERS}',
-            '{MAX_PLAYERS}'
+            '{MAX_PLAYERS}',
+            '{STATE}'
         ], [
             $game->getName(),
             count($game->getPlayers()),
-            count($game->getSpawns())
+            count($game->getSpawns()),
+            $this->language->translateString($game->isJoinable() ? "gamestate.joinable" : "gamestate.running")
         ], $this->text);
     }
 

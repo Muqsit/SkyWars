@@ -23,11 +23,15 @@ waiting-queue:
   block-trap-block: "STAINED_GLASS:15"
 
 # Message format for all join signs
+# {NAME} => The game's name
+# {PLAYERS} => The number of players in the game
+# {MAX_PLAYERS} => Maximum player capacity of the game
+# {STATE} => "gamestate.joinable" or "gamestate.running" (see language file)
 sign-format:
  - '&f&lSkyWars&r'
  - '&e{NAME}'
  - '&6{PLAYERS} &b/ &e{MAX_PLAYERS}'
- - '&aTap to JOIN!'
+ - '{STATE}'
 
 # SkyWars scoring system
 scoring:
