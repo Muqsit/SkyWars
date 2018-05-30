@@ -3,7 +3,7 @@
 declare(strict_types=1);
 namespace muqsit\skywars\utils;
 
-use muqsit\skywars\GameHandler;
+use muqsit\skywars\handler\GameHandler;
 use muqsit\skywars\game\SkyWars;
 
 use pocketmine\level\Level;
