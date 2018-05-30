@@ -98,7 +98,10 @@ class SignHandler {
         if (!empty($signs)) {
             [$text1, $text2, $text3, $text4] = $this->getSignLines($game);
             foreach ($signs as $pos) {
-                $pos->level->getTileAt($pos->x, $pos->y, $pos->z)->setText($text1, $text2, $text3, $text4);
+                $tile = $pos->level->getTileAt($pos->x, $pos->y, $pos->z);
+                if ($tile !== null) {
+                    $tile->setText($text1, $text2, $text3, $text4);
+                }
             }
         }
     }

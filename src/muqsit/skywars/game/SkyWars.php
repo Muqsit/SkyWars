@@ -395,6 +395,11 @@ class SkyWars {
             return false;
         }
 
+        $previous_game = SkyWars::$handler->getGameByPlayer($player);
+        if ($previous_game !== null) {
+            $previous_game->remove($player);
+        }
+
         $this->players[$rawUUID] = $player;
         $this->storePlayerState($player);
 
