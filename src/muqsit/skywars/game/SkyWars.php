@@ -3,7 +3,6 @@
 declare(strict_types=1);
 namespace muqsit\skywars\game;
 
-use muqsit\skywars\GameHandler;
 use muqsit\skywars\game\tasks\CountdownTask;
 use muqsit\skywars\game\tasks\GameTask;
 use muqsit\skywars\game\tasks\RuntimeTask;
@@ -17,7 +16,6 @@ use muqsit\skywars\utils\TextUtils;
 
 use pocketmine\block\Block;
 use pocketmine\item\ItemFactory;
-use pocketmine\lang\BaseLang;
 use pocketmine\level\Level;
 use pocketmine\math\Vector3;
 use pocketmine\Player;
@@ -173,7 +171,7 @@ class SkyWars {
     protected $player_spawn_index = [];
 
     /** @var int */
-    protected $state;
+    protected $state = SkyWars::STATE_AWAITING_PLAYERS;
 
     /** @var int */
     protected $min_players = 2;
@@ -198,6 +196,14 @@ class SkyWars {
         $this->level_name = $level_name;
         $this->name = $name;
 
+        $x = [$vertex1->x, $vertex2->x];
+        $vertex1->x = min($x);
+        $vertex2->x = max($x);
+
+        $z = [$vertex1->z, $vertex2->z];
+        $vertex1->z = min($z);
+        $vertex2->z = max($z);
+
         $this->vertex1 = $vertex1;
         $this->vertex2 = $vertex2;
 
@@ -209,20 +215,19 @@ class SkyWars {
             $this->spawns[] = $spawn->asVector3();
         }
 
-        $this->reset();
+        $this->vacant_spawns = $this->spawns;
+        $this->createChunkBackup();
     }
 
     public function createChunkBackup() : void
     {
-        $chunk_backup = new ChunkBackup($this->level);
+        $chunk_backup = new ChunkBackup($this->getLevel());
 
-        $x = [$this->vertex1->x >> 4, $this->vertex2->x >> 4];
-        $minX = min($x);
-        $maxX = max($x);
+        $minX = $this->vertex1->x >> 4;
+        $maxX = $this->vertex2->x >> 4;
 
-        $z = [$this->vertex1->z >> 4, $this->vertex2->z >> 4];
-        $minZ = min($z);
-        $maxZ = max($z);
+        $minZ = $this->vertex1->z >> 4;
+        $maxZ = $this->vertex2->z >> 4;
 
         for ($x = $minX; $x <= $maxX; ++$x) {
             for ($z = $minZ; $z <= $maxZ; ++$z) {
@@ -242,13 +247,11 @@ class SkyWars {
 
     public function refillChests() : void
     {
-        $x = [$this->vertex1->x, $this->vertex2->x];
-        $minX = min($x);
-        $maxX = max($x);
+        $minX = $this->vertex1->x;
+        $maxX = $this->vertex2->x;
 
-        $z = [$this->vertex1->z, $this->vertex2->z];
-        $minZ = min($z);
-        $maxZ = max($z);
+        $minZ = $this->vertex1->z;
+        $maxZ = $this->vertex2->z;
 
         $slots = range(0, 26);
 
@@ -351,26 +354,21 @@ class SkyWars {
 
     public function reset() : void
     {
-        if ($this->level === null) {
-            $server = Server::getInstance();
-            $level = $server->getLevelByName($this->level_name);
-            if ($level === null) {
-                throw new \Error("No level with the name " . $this->level_name . " could be found.");
-            }
-
-            $this->level = $level;
-            $this->createChunkBackup();
-        } else {
-            $this->restoreChunks();
-        }
-
-        $this->setState(SkyWars::STATE_AWAITING_PLAYERS);
+        $this->restoreChunks();
 
         foreach ($this->players as $player) {
             $this->remove($player, true);
         }
 
+        $this->setState(SkyWars::STATE_AWAITING_PLAYERS);
         $this->vacant_spawns = $this->spawns;
+
+        SkyWars::$handler->checkForRejoins($this);
+    }
+
+    public function getLevel() : ?Level
+    {
+        return $this->level ?? ($this->level = Server::getInstance()->getLevelByName($this->level_name));
     }
 
     public function add(Player $player) : bool
@@ -406,7 +404,7 @@ class SkyWars {
         $player->setGamemode(Player::SURVIVAL);
 
         $this->updateGameState();
-        static::$handler->setPlayerGame($player, $this);
+        SkyWars::$handler->setPlayerGame($player, $this);
 
         SkyWars::$sign_handler->updateSigns($this);
         return true;
@@ -440,6 +438,10 @@ class SkyWars {
         $this->disqualified[$rawUUID] = 0;
         $player->setGamemode(Player::SPECTATOR);
 
+        if ($this->isOutOfBounds($player)) {
+            $player->teleport($this->spawns[$this->player_spawn_index[$player->getRawUniqueId()]]);
+        }
+
         $this->updateGameState();
         return true;
     }
@@ -468,15 +470,28 @@ class SkyWars {
         $this->vacant_spawns[$index] = $this->spawns[$index];
         unset($this->player_spawn_index[$rawUUID]);
 
-        $this->updateGameState();
-        static::$handler->setPlayerGame($player, null, $game_ended);
+        if (!$game_ended) {
+            $this->updateGameState();
+        }
 
+        SkyWars::$handler->setPlayerGame($player, null, $game_ended);
         SkyWars::$sign_handler->updateSigns($this);
     }
 
     public function canModifyTerrain(Player $player) : bool
     {
         return $this->state > SkyWars::STATE_COUNTDOWN && !$this->isDisqualified($player);
+    }
+
+    public function isOutOfBounds(Vector3 $pos) : bool
+    {
+        return
+            $pos->x < $this->vertex1->x ||
+            $pos->x > $this->vertex2->x ||
+            $pos->z < $this->vertex1->z ||
+            $pos->z > $this->vertex2->z ||
+            $pos->y < 1 ||
+            $pos->y > $this->level->getWorldHeight();
     }
 
     public function broadcastMessage(string $message, int $targets = SkyWars::TYPE_ALL_PLAYERS) : void
@@ -562,6 +577,7 @@ class SkyWars {
         switch ($this->state = $state) {
             case SkyWars::STATE_AWAITING_PLAYERS:
                 $this->cancelAllTasks();
+                SkyWars::$sign_handler->updateSigns($this);
                 break;
             case SkyWars::STATE_COUNTDOWN:
                 $task = new CountdownTask($this);
@@ -587,11 +603,8 @@ class SkyWars {
                 }
 
                 $this->refillChests();
+                SkyWars::$sign_handler->updateSigns($this);
                 break;
-        }
-
-        if (isset(SkyWars::$sign_handler)) {
-            SkyWars::$sign_handler->updateSigns($this);
         }
     }
 
@@ -649,6 +662,7 @@ class SkyWars {
     public function stop() : void
     {
         $this->reset();
+        SkyWars::$sign_handler->updateSigns($this);
     }
 
     public function handleJoin(Player $player) : bool

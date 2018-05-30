@@ -33,6 +33,9 @@ class GameHandler {
     /** @var bool */
     private $auto_rejoin;
 
+    /** @var string[] */
+    private $rejoins = [];
+
     public function init(Loader $plugin) : void
     {
         $this->auto_rejoin = $plugin->getConfig()->get("auto-rejoin-games");
@@ -41,7 +44,8 @@ class GameHandler {
 
         if (file_exists($this->config_path)) {
             foreach (yaml_parse_file($this->config_path) as $args) {
-                $this->add(SkyWars::fromConfig($args), false);
+                $this->add($game = SkyWars::fromConfig($args), false);
+                $this->sign_handler->updateSigns($game);
             }
         }
     }
@@ -144,6 +148,16 @@ class GameHandler {
         return $this->get($this->player_games[$player->getId()] ?? "");
     }
 
+    public function checkForRejoins(SkyWars $game) : void
+    {
+        if (isset($this->rejoins[$key = strtolower($game->getName())])) {
+            foreach (array_intersect_key($game->getLevel()->getServer()->getOnlinePlayers(), $this->rejoins[$key]) as $player) {
+                $game->add($player);
+            }
+            unset($this->rejoins[$key]);
+        }
+    }
+
     public function setPlayerGame(Player $player, ?SkyWars $game, bool $game_ended = false) : void
     {
         if ($game === null) {
@@ -151,7 +165,7 @@ class GameHandler {
                 $game = $this->player_games[$pid];
                 unset($this->player_games[$pid]);
                 if ($game_ended && $this->auto_rejoin) {
-                    $this->get($game)->add($player);
+                    $this->rejoins[$game][$player->getRawUniqueId()] = null;
                 }
             }
         } else {
