@@ -369,7 +369,16 @@ class SkyWars {
 
     public function getLevel() : ?Level
     {
-        return $this->level ?? ($this->level = Server::getInstance()->getLevelByName($this->level_name));
+        if ($this->level !== null) {
+            return $this->level;
+        }
+
+        $server = Server::getInstance();
+        if ($server->loadLevel($this->level_name)) {
+            return $server->getLevelByName($this->level_name);
+        }
+
+        return null;
     }
 
     public function add(Player $player) : bool

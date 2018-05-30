@@ -48,8 +48,14 @@ class ScoreboardHandler {
             FloatingScoreboard::setTitle($title);
             FloatingScoreboard::setLineFormat($line);
 
-            foreach (yaml_parse_file($this->path) as $pos) {
-                $position = new Position($pos["x"], $pos["y"], $pos["z"], $server->getLevelByName($pos["level"]));
+            foreach (yaml_parse_file($this->path) as [
+                "x" => $x,
+                "y" => $y,
+                "z" => $z,
+                "level" => $level
+            ]) {
+                $server->loadLevel($level);
+                $position = new Position($x, $y, $z, $server->getLevelByName($level));
                 $this->scoreboards[] = new FloatingScoreboard($position, $this->database);
             }
         }

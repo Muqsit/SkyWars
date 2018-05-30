@@ -49,6 +49,7 @@ class SignHandler {
         foreach (yaml_parse_file($this->path) as $key => $game) {
             $this->signs[$key] = $game;
             [$x, $y, $z, $level] = explode(";", $key);
+            $server->loadLevel($level);
             $this->game_signs[$game][$key] = new Position((int) $x, (int) $y, (int) $z, $server->getLevelByName($level));
         }
     }
