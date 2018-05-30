@@ -375,7 +375,7 @@ class SkyWars {
 
         $server = Server::getInstance();
         if ($server->loadLevel($this->level_name)) {
-            return $server->getLevelByName($this->level_name);
+            return $this->level = $server->getLevelByName($this->level_name);
         }
 
         return null;
