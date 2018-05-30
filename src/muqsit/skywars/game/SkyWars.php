@@ -17,6 +17,7 @@ use muqsit\skywars\utils\TextUtils;
 use pocketmine\block\Block;
 use pocketmine\item\ItemFactory;
 use pocketmine\level\Level;
+use pocketmine\level\Position;
 use pocketmine\math\Vector3;
 use pocketmine\Player;
 use pocketmine\Server;
@@ -388,7 +389,7 @@ class SkyWars {
         $this->players[$rawUUID] = $player;
         $this->storePlayerState($player);
 
-        $player->teleport($this->getVacantSpawn($index));
+        $player->teleport(Position::fromObject($this->getVacantSpawn($index), $this->level));
         $this->player_spawn_index[$rawUUID] = $index;
         unset($this->vacant_spawns[$index]);
 
