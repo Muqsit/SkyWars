@@ -14,6 +14,7 @@ use pocketmine\network\mcpe\protocol\PlayerSkinPacket;
 use pocketmine\network\mcpe\protocol\RemoveEntityPacket;
 use pocketmine\network\mcpe\protocol\SetEntityDataPacket;
 use pocketmine\scheduler\Task;
+use pocketmine\scheduler\TaskScheduler;
 use pocketmine\Server;
 use pocketmine\utils\TextFormat;
 use pocketmine\utils\UUID;
@@ -63,7 +64,10 @@ class FloatingScoreboard extends Position {
     /** @var bool */
     private $despawn = false;
 
-    public function __construct(Position $pos, Database $database)
+    /** @var TaskScheduler */
+    private $scheduler;
+
+    public function __construct(TaskScheduler $scheduler, Position $pos, Database $database)
     {
         parent::__construct($pos->x, $pos->y, $pos->z, $pos->level);
 
@@ -88,12 +92,13 @@ class FloatingScoreboard extends Position {
         $this->despawn_packet = $pk;
 
         $this->database = $database;
+        $this->scheduler = $scheduler;
         $this->scheduleUpdate();
     }
 
     public function scheduleUpdate(int $tick_interval = 100) : void
     {
-        $this->getLevel()->getServer()->getScheduler()->scheduleRepeatingTask(new class($this) extends Task {
+        $this->scheduler->scheduleRepeatingTask(new class($this) extends Task {
 
             /** @var FloatingScoreboard */
             private $scoreboard;
@@ -107,7 +112,7 @@ class FloatingScoreboard extends Position {
             {
                 if (!$this->scoreboard->onUpdate($tick)) {
                     $this->scoreboard->despawn();
-                    Server::getInstance()->getScheduler()->cancelTask($this->getTaskId());
+                    $this->scheduler->cancelTask($this->getTaskId());
                 }
             }
         }, $tick_interval);
