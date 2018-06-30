@@ -57,6 +57,9 @@ class SkyWars {
     /** @var array */
     protected static $waiting_queue_opts;
 
+    /** @var TaskScheduler */
+    protected static $scheduler;
+
     public static function init(Loader $plugin) : void
     {
         $config = $plugin->getConfig();
@@ -66,6 +69,7 @@ class SkyWars {
         SkyWars::$lang = $plugin->getLanguage();
         SkyWars::$sign_handler = $plugin->getSignHandler();
         SkyWars::$waiting_queue_opts = $config->get("waiting-queue");
+        SkyWars::$scheduler = $plugin->getScheduler();
 
         if (SkyWars::$waiting_queue_opts["block-trap-players"]) {
             $block = ItemFactory::fromString(SkyWars::$waiting_queue_opts["block-trap-block"])->getBlock();
@@ -625,19 +629,18 @@ class SkyWars {
 
     protected function scheduleTask(GameTask $task, int $identifier, int $tickrate = 20) : void
     {
-        $scheduler = $this->level->getServer()->getScheduler();
         if (isset($this->taskIds[$identifier])) {
-            $scheduler->cancelTask($this->taskIds[$identifier]);
+            self::$scheduler->cancelTask($this->taskIds[$identifier]);
         }
 
-        $scheduler->scheduleRepeatingTask($task, $tickrate);
+        self::$scheduler->scheduleRepeatingTask($task, $tickrate);
         $this->taskIds[$identifier] = $task->getTaskId();
     }
 
     public function cancelTask(int $identifier) : void
     {
         if (isset($this->taskIds[$identifier])) {
-            $this->level->getServer()->getScheduler()->cancelTask($this->taskIds[$identifier]);
+            self::$scheduler->cancelTask($this->taskIds[$identifier]);
             unset($this->taskIds[$identifier]);
         }
     }
