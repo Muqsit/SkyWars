@@ -26,11 +26,15 @@ class ScoreboardHandler {
     /** @var array */
     private $config;
 
+    /** @var TaskScheduler */
+    private $scheduler;
+
     public function __construct(Loader $plugin)
     {
         $this->path = $plugin->getDataFolder() . "scoreboards.yml";
         $this->config = $plugin->getConfig()->get("scoring");
         $this->database = $plugin->getDatabase();
+        $this->scheduler = $plugin->getScheduler();
 
         $this->load($plugin->getServer());
     }
@@ -56,7 +60,7 @@ class ScoreboardHandler {
             ]) {
                 $server->loadLevel($level);
                 $position = new Position($x, $y, $z, $server->getLevelByName($level));
-                $this->scoreboards[] = new FloatingScoreboard($position, $this->database);
+                $this->scoreboards[] = new FloatingScoreboard($this->scheduler, position, $this->database);
             }
         }
     }
@@ -64,7 +68,7 @@ class ScoreboardHandler {
     public function add(Position $pos) : bool
     {
         if ($this->config["enable"]) {
-            $this->scoreboards[] = new FloatingScoreboard($pos->asPosition(), $this->database);
+            $this->scoreboards[] = new FloatingScoreboard($this->scheduler, $pos->asPosition(), $this->database);
             return true;
         }
 
