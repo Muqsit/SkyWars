@@ -12,8 +12,8 @@ class JSONDatabase extends Database {
 
     public const TYPE = Database::JSON;
 
-    /** @var ServerScheduler */
-    private $scheduler;
+    /** @var AsyncPool */
+    private $async_pool;
 
     /** @var int[] */
     private $scoreboard = [];
@@ -29,7 +29,7 @@ class JSONDatabase extends Database {
         }
 
         $this->folder_path = $folder_path;
-        $this->scheduler = Server::getInstance()->getScheduler();
+        $this->async_pool = Server::getInstance()->getAsyncPool();
         parent::__construct();
     }
 
@@ -51,6 +51,6 @@ class JSONDatabase extends Database {
 
     public function addScore(Player $player, int $score) : void
     {
-        $this->scheduler->scheduleAsyncTask(new JSONScoreAddTask($player->getName(), $this->folder_path, $score));
+        $this->async_pool->submitTask(new JSONScoreAddTask($player->getName(), $this->folder_path, $score));
     }
 }
