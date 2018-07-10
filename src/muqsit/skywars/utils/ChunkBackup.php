@@ -60,8 +60,7 @@ class ChunkBackup {
             if ($chunk !== null) {
                 $chunks[$hash] = $chunk->fastSerialize();
                 foreach ($chunk->getTiles() as $tile) {
-                    $tile->saveNBT();
-                    $tiles[] = $tile->namedtag;
+                    $tiles[] = $tile->saveNBT();
                 }
             }
         }
