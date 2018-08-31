@@ -60,7 +60,7 @@ class ScoreboardHandler {
             ]) {
                 $server->loadLevel($level);
                 $position = new Position($x, $y, $z, $server->getLevelByName($level));
-                $this->scoreboards[] = new FloatingScoreboard($this->scheduler, position, $this->database);
+                $this->scoreboards[] = new FloatingScoreboard($this->scheduler, $position, $this->database);
             }
         }
     }
