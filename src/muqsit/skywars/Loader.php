@@ -44,7 +44,6 @@ class Loader extends PluginBase {
         $this->createDatabase();
         $this->loadLanguage();
 
-        $this->game_handler = new GameHandler($this);
         $this->scoreboard_handler = new ScoreboardHandler($this);
         $this->loadGames();
         $this->sign_handler = new SignHandler($this);
