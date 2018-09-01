@@ -12,7 +12,7 @@ use muqsit\skywars\integration\Integration;
 use muqsit\skywars\utils\loot\LootTable;
 use muqsit\skywars\utils\GameCreator;
 
-use pocketmine\lang\BaseLang;
+use pocketmine\lang\Language;
 use pocketmine\level\Position;
 use pocketmine\plugin\PluginBase;
 
@@ -87,7 +87,7 @@ class Loader extends PluginBase {
     private function loadLanguage() : void
     {
         $lang = $this->getServer()->getLanguage()->getLang();
-        $this->lang = new BaseLang($lang, $this->getDataFolder() . "lang/");
+        $this->lang = new Language($lang, $this->getDataFolder() . "lang/");
     }
 
     private function loadGames() : void
@@ -101,7 +101,7 @@ class Loader extends PluginBase {
         SkyWars::init($this);
     }
 
-    public function getLanguage() : BaseLang
+    public function getLanguage() : Language
     {
         return $this->lang;
     }
