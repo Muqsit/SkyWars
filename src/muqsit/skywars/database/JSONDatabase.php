@@ -36,7 +36,7 @@ class JSONDatabase extends Database {
     public function initializeScoreboard() : void
     {
         if (empty($this->scoreboard)) {
-            echo "Initializing JSON scoreboard...";
+           $plugin->getLogger()->echo "Initializing JSON scoreboard...";
             foreach (scandir($this->folder_path) as $file) {
                 if (substr($file, -5) === ".json") {
                     echo "\r\033[K[Reading file " . $file;
