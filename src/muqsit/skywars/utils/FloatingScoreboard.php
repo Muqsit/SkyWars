@@ -98,7 +98,7 @@ class FloatingScoreboard extends Position {
 
     public function scheduleUpdate(int $tick_interval = 100) : void
     {
-        $this->scheduler->scheduleRepeatingTask(new class($this) extends Task {
+        $this->scheduler->scheduleRepeatingTask(new class($this) extends Task){
 
             /** @var FloatingScoreboard */
             private $scoreboard;
